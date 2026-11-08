@@ -26,7 +26,7 @@ never settles. `samples/mosaic_shimmer.mp4` shows six seconds of it.
 ## Use it
 
 1. Put face images in `faces/` (see [The faces](#the-faces)).
-2. Start `run.bat`. The first time it sets itself up: a Python 3.11 venv with MediaPipe, OpenCV and
+2. Start `run.bat` (or `.\run.ps1` in PowerShell, `./run.sh` in Git Bash or Linux). The first time it sets itself up: a Python 3.11 venv with MediaPipe, OpenCV and
    pyvirtualcam.
 3. In your call, pick the camera **OBS Virtual Camera**. [OBS Studio](https://obsproject.com/) must be
    installed for its virtual camera; it doesn't have to be running.
@@ -36,6 +36,8 @@ The preview window shows what the call sees, with the frame rate and how many fa
 | Key | Does |
 | :--- | :--- |
 | <kbd>M</kbd> | mosaic on / off (your own face, for a moment) |
+| <kbd>O</kbd> | occlusion on / off: hands, hair, a cup in front of your face stay in front of the mosaic |
+| <kbd>A</kbd> | voice: off, female, male, disguise (see [The voice](#the-voice)) |
 | <kbd>V</kbd> | virtual camera on / off |
 | <kbd>R</kbd> | reload `faces/` (after adding images) |
 | <kbd>Q</kbd> or <kbd>Esc</kbd> | quit |
@@ -50,6 +52,39 @@ The preview window shows what the call sees, with the frame rate and how many fa
 Options: `run.bat --camera 1` (another webcam), `run.bat --source clip.mp4` (a video or a picture instead
 of the webcam), `run.bat --no-virtual` (just the preview), `run.bat --source face.jpg --snapshot out.png`
 (one masked frame saved to a file, for trying settings).
+
+## The voice
+
+Press <kbd>A</kbd> to cycle your voice: **off**, **female**, **male**, **disguise**.
+
+| Voice | What it does |
+| :--- | :--- |
+| female | your voice taken to a woman's pitch (about 210 Hz), the formants (the resonance that sounds man or woman) up with it |
+| male | your voice taken to a man's pitch (about 115 Hz), the formants down with it |
+| disguise | pitch and formants drift slowly and at random around your own, so you sound like nobody in particular |
+| off | your own voice, still through the cable, so the call's microphone doesn't change |
+
+It's a phase vocoder working on one continuous stream: your voice's harmonics move by the pitch ratio,
+its spectral envelope (the formants) by the formant ratio, and the phases carry on from one moment to the
+next, so there are no seams. About a tenth of a second of delay, on the CPU. Female and male aim at a
+pitch rather than a fixed step: your own pitch is learned as you talk, so a deep voice and a light one
+both land in the right range.
+
+### VB-Audio Virtual Cable, and listening to the test files
+
+- **The cable is a sound driver:** it installs into Windows with admin rights and adds devices to your
+  system. Changing your computer's drivers is your call, not something to do quietly. Without it, the
+  changed voice has no way to reach Zoom, Discord or similar. Install
+  [VB-Audio Virtual Cable](https://vb-audio.com/Cable/), then in your call pick **CABLE Output** as the
+  microphone.
+- **The test files:** the pitch is measured and correct by the numbers, but whether it *sounds* like a
+  believable voice, or robotic and warbly, only your ears can judge. `voice_tests/` (on your own PC,
+  not in the repo) has a recording through each voice to listen to first: a clean male test voice
+  (Windows' David), then female, male and disguise.
+
+Options: `run.bat --voice female` (start with a voice), `run.bat --mic "Focusrite"` (pick the microphone
+by part of its name), `run.bat --monitor "Speakers"` (also hear yourself: use headphones, or you'll get
+feedback).
 
 ## The faces
 

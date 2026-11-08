@@ -100,8 +100,44 @@ class Suit:
         shift = (dst_m - src_m * dst_s / src_s) * k
         return canon * gain + shift
 
+    # ---- your own blinks and mouth
+    # The donors are photos: eyes open, mouth closed. Stretched over a blink they stay wide open, and over
+    # an open mouth their lips smear across the gap. So the inside of the mouth (teeth, tongue) is always
+    # yours, and as an eye closes it fades to your own eyelid: a closed eye shows next to nothing of who
+    # you are, and the blink and the talking are real.
+    INNER_LIPS = [78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308, 324, 318, 402, 317, 14, 87, 178, 88, 95]
+    EYES = ([33, 246, 161, 160, 159, 158, 157, 173, 133, 155, 154, 153, 145, 144, 163, 7],
+            [362, 398, 384, 385, 386, 387, 388, 466, 263, 249, 390, 373, 374, 380, 381, 382])
+    EYE_OPENNESS = ((159, 145, 33, 133), (386, 374, 362, 263))   # top, bottom, corner, corner
+    # Eyes differ, and MediaPipe never sees a lid fully shut, so a blink is measured against your own
+    # eyes: their usual "open" (learned as you go, slowly forgetting) and a drop below it. From 85 % of
+    # it the eye starts to count as closing, at 68 % it's shut.
+    CLOSING, SHUT = 0.85, 0.68
+
+    def _own(self, lm, shape, offset):
+        """How much of your own face shows (0..1) over the box: the mouth's inside, closed eyes."""
+        own = np.zeros(shape, np.float32)
+        cv2.fillPoly(own, [np.int32(np.round(lm[self.INNER_LIPS] - offset))], 1.0)
+        if not hasattr(self, "_eye_open"):
+            self._eye_open = [None, None]
+        for k, (poly, (t, b, c1, c2)) in enumerate(zip(self.EYES, self.EYE_OPENNESS)):
+            gap = np.linalg.norm(lm[t] - lm[b]) / max(np.linalg.norm(lm[c1] - lm[c2]), 1e-3)
+            ref = self._eye_open[k]
+            ref = gap if ref is None else max(ref * 0.998, gap)   # your open eye: the widest lately
+            self._eye_open[k] = ref
+            shut = float(np.clip((self.CLOSING * ref - gap) / ((self.CLOSING - self.SHUT) * ref), 0, 1))
+            if shut > 0:
+                pts = lm[poly]
+                centre = pts.mean(0)
+                pts = centre + (pts - centre) * [1.25, 1.9]       # the lid and its crease, not just the slit
+                eye = np.zeros(shape, np.float32)
+                cv2.fillPoly(eye, [np.int32(np.round(pts - offset))], shut)
+                own = np.maximum(own, eye)
+        k = max(3, int(min(shape) * 0.03) | 1)
+        return cv2.GaussianBlur(own, (k, k), 0)
+
     # ---- onto the live frame
-    def apply(self, frame, lm):
+    def apply(self, frame, lm, occluder=None):
         """The mosaic warped onto the face at lm (468 landmarks, pixels) in frame. Returns a new frame.
         Only the face's box is worked on: the rest of the frame is copied as it is."""
         now = time.monotonic()
@@ -127,7 +163,10 @@ class Suit:
         size = max(3, int(min(bw, bh) * 0.06) | 1)
         face = cv2.erode(face, np.ones((size, size), np.uint8))
         face = cv2.GaussianBlur(face, (0, 0), size / 2)
-        alpha = (mask * face)[..., None]
+        alpha = mask * face * (1 - self._own(lm, mask.shape, np.float32([x0, y0])))
+        if occluder is not None and occluder.on:              # hands, hair, a cup in front: not painted over
+            alpha *= occluder.mask(frame, lm, (x0, y0, x1, y1))
+        alpha = alpha[..., None]
         out = frame.copy()
         out[y0:y1, x0:x1] = (warped.astype(np.float32) * alpha + crop.astype(np.float32) * (1 - alpha)).astype(np.uint8)
         return out

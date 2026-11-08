@@ -13,6 +13,8 @@ are, the less any one of them shows.
 
 Keys in the preview window:
     M          mosaic on / off (your own face, for a moment)
+    A          voice: off, female, male, disguise (to the call through VB-Audio Virtual Cable)
+    O          occlusion on / off (hands, hair, a cup in front of the face stay in front of the mosaic)
     V          virtual camera on / off
     R          reload faces/ (after adding images)
     Q or Esc   quit
@@ -30,6 +32,8 @@ import numpy as np
 from mosaic import mesh
 from mosaic.face_pool import FacePool
 from mosaic.suit import Suit
+from mosaic.occlusion import Occluder
+from mosaic.voice import VoiceChanger, PRESETS
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 WINDOW = "Mosaic Mask"
@@ -95,6 +99,10 @@ def main():
     ap.add_argument("--height", type=int, default=720)
     ap.add_argument("--fps", type=int, default=30)
     ap.add_argument("--no-virtual", action="store_true")
+    ap.add_argument("--voice", choices=PRESETS, default="off", help="the voice to start with (A changes it)")
+    ap.add_argument("--mic", help="the microphone (part of its name; default: Windows' default)")
+    ap.add_argument("--cable", default="CABLE Input", help="the virtual cable's playback side (default CABLE Input)")
+    ap.add_argument("--monitor", help="also play the voice here, to hear yourself (part of a name: use headphones)")
     ap.add_argument("--snapshot", help="save one masked frame to this file and quit (for testing)")
     args = ap.parse_args()
 
@@ -102,19 +110,24 @@ def main():
     pool = load_pool(args.faces)
     suit = Suit(pool) if len(pool) else None
     tracker = mesh.Tracker(still=still)
+    occluder = Occluder()
+    voice = None
+    print("Occlusion: " + ("on, " + ("GPU" if occluder.gpu else "CPU") if occluder.on else "off: " + occluder.why))
 
     if args.snapshot:                            # one frame, for a quick look
         frame = read()
         lm = tracker.landmarks(frame)
         if suit and lm is not None:
             for _ in range(3):
-                out = suit.apply(frame, lm)
+                out = suit.apply(frame, lm, occluder)
         else:
             out = frame
         cv2.imwrite(args.snapshot, out)
         print(f"Saved {args.snapshot} (face found: {lm is not None}, faces in the pool: {len(pool)})")
         return
 
+    voice = VoiceChanger(mic=args.mic, cable=args.cable, monitor=args.monitor, preset=args.voice)
+    print("Voice: " + (f"{voice.preset} (A changes it), to the call through the virtual cable" if voice.start() else voice.why))
     cv2.namedWindow(WINDOW, cv2.WINDOW_NORMAL)
     cv2.resizeWindow(WINDOW, 960, 540)
     cv2.createTrackbar("fragments", WINDOW, 24, 80, lambda v: None)
@@ -142,7 +155,7 @@ def main():
             suit.fade_ms = cv2.getTrackbarPos("fade ms", WINDOW)
             suit.color_match = cv2.getTrackbarPos("colour %", WINDOW) / 100
         lm = tracker.landmarks(frame)
-        out = suit.apply(frame, lm) if (suit and mask_on and lm is not None) else frame
+        out = suit.apply(frame, lm, occluder) if (suit and mask_on and lm is not None) else frame
         if virtual is not None:
             virtual.send(out)
         now = time.monotonic()
@@ -150,7 +163,7 @@ def main():
         t_last = now
         view = out.copy()
         status = [f"{fps:4.1f} fps   faces: {len(pool)}   mosaic: {'on' if mask_on else 'OFF'}   "
-                  f"virtual camera: {'on' if virtual is not None else 'off'}"]
+                  f"occlusion: {'on' if occluder.on else 'off'}   voice: {voice.preset if voice.ready else 'no cable'}   virtual camera: {'on' if virtual is not None else 'off'}"]
         if not len(pool):
             status.append("No faces yet: put images in faces/ and press R")
         elif lm is None:
@@ -162,6 +175,10 @@ def main():
             break
         if k == ord("m"):
             mask_on = not mask_on
+        elif k == ord("a") and voice.ready:
+            print("Voice:", voice.next_preset())
+        elif k == ord("o") and occluder.session is not None:
+            occluder.on = not occluder.on
         elif k == ord("v"):
             if virtual is not None:
                 virtual.close()
@@ -173,6 +190,8 @@ def main():
             suit = Suit(pool, fragments=frags_now) if len(pool) else None
     if virtual is not None:
         virtual.close()
+    if voice is not None:
+        voice.stop()
     tracker.close()
     cv2.destroyAllWindows()
 

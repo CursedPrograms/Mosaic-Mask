@@ -14,6 +14,12 @@ if errorlevel 1 (
     "%PY%" -m pip install -r requirements.txt || goto :fail
     copy /y requirements.txt venv\requirements.installed >nul
 )
+if not exist "models\xseg_1.onnx" (
+    echo Downloading the occlusion model, about 70 MB, once ...
+    if not exist models mkdir models
+    curl -L --fail -o "models\xseg_1.onnx.part" "https://huggingface.co/facefusion/models-3.1.0/resolve/main/xseg_1.onnx" || goto :fail
+    move /y "models\xseg_1.onnx.part" "models\xseg_1.onnx" >nul
+)
 "%PY%" app.py %*
 if errorlevel 1 pause
 exit /b
