@@ -1,0 +1,7 @@
+# Mosaic Mask
+venv/
+__pycache__/
+*.pyc
+# the face cache: made again from faces/ whenever it's needed
+faces/_canon/
+samples/_gif_src.mp4

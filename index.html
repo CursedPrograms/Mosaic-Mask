@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mosaic Mask: a scramble suit for video calls</title>
+<meta name="description" content="Mosaic Mask turns your face on video calls into a shifting mosaic of AI-generated strangers, inspired by the scramble suit in Philip K. Dick's A Scanner Darkly. Webcam in, OBS Virtual Camera out, 30 fps on a CPU.">
+<meta name="color-scheme" content="dark">
+<meta property="og:title" content="Mosaic Mask: a scramble suit for video calls">
+<meta property="og:description" content="Your face as a shifting mosaic of strangers who don't exist. Inspired by A Scanner Darkly.">
+<meta property="og:image" content="samples/mosaic_samples.jpg">
+<link rel="icon" href="site/icon.svg">
+<link rel="stylesheet" href="site/style.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">a disguise for video calls</div>
+    <h1>Mosaic Mask</h1>
+    <p class="tagline">Your face, as a shifting mosaic of strangers</p>
+    <p class="lede">Every part of your face (eyes, brows, nose, mouth, cheeks, chin, forehead) comes from a
+      different person and keeps changing, so nobody on the call ever sees one face. It follows you as you
+      talk, turn and frown, and goes to Zoom, Teams, Discord or Meet as an ordinary camera. The strangers are
+      AI-generated people who don't exist.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/CursedPrograms/Mosaic-Mask">View on GitHub</a>
+      <a class="btn" href="#use">Use it</a>
+      <a class="btn" href="#how">How it works</a>
+    </div>
+    <div class="tags">
+      <span class="tag">MediaPipe Face Mesh</span><span class="tag">OpenCV</span><span class="tag">OBS Virtual Camera</span>
+      <span class="tag">30 fps on a CPU</span><span class="tag">Python</span>
+    </div>
+    <figure class="hero"><img src="samples/mosaic_mask.gif" alt="A face on the left, the same face on the right as a shifting mosaic of strangers" width="640" height="320"></figure>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="inspired">
+    <h2>The scramble suit</h2>
+    <p>Inspired by the <strong>scramble suit</strong> in <em>A Scanner Darkly</em> by <strong>Philip K. Dick</strong>
+      (the 1977 novel, and Richard Linklater's 2006 film of it): the undercover agents' disguise, a shroud that
+      shows a constantly shifting blur of thousands of different people's faces and bodies, so the wearer is
+      nobody in particular. Mosaic Mask does the face, live, on a webcam.</p>
+  </section>
+
+  <section id="samples">
+    <h2>What it looks like</h2>
+    <p>Each row is one face: as the camera sees it, then as the mosaic half a second, a second and a second and
+      a half later. Every piece follows the face's own shape, and every piece changes on its own timer, so the
+      face never settles. Click to enlarge.</p>
+    <figure class="sheet"><img id="sheet" src="samples/mosaic_samples.jpg" alt="Four faces, each as the camera sees it, then as the mosaic at three moments half a second apart" width="1200" height="1200" loading="lazy"></figure>
+  </section>
+
+  <section id="use">
+    <h2>Use it</h2>
+    <ol class="steps">
+      <li>Put face images in <code>faces/</code> (the repo comes with 27).</li>
+      <li>Start <code>run.bat</code>. The first time it sets itself up: Python 3.11 with MediaPipe, OpenCV and pyvirtualcam.</li>
+      <li>In your call, pick the camera <strong>OBS Virtual Camera</strong>. <a href="https://obsproject.com/">OBS Studio</a> must be installed for its virtual camera; it doesn't have to be running.</li>
+    </ol>
+    <div class="grid two">
+      <div class="card">
+        <h3>Keys</h3>
+        <table>
+          <tr><td><kbd>M</kbd></td><td>mosaic on / off</td></tr>
+          <tr><td><kbd>V</kbd></td><td>virtual camera on / off</td></tr>
+          <tr><td><kbd>R</kbd></td><td>reload <code>faces/</code></td></tr>
+          <tr><td><kbd>Q</kbd> <kbd>Esc</kbd></td><td>quit</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Sliders</h3>
+        <table>
+          <tr><td>fragments</td><td>how many pieces the face is cut into</td></tr>
+          <tr><td>swap ms</td><td>how often each piece changes to someone else</td></tr>
+          <tr><td>fade ms</td><td>how long a piece blends into the next face</td></tr>
+          <tr><td>colour %</td><td>how much the mosaic takes on your skin tone</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="faces">
+    <h2>The faces</h2>
+    <p>The more there are, the less any one of them shows: 100 or more is good. Generate them rather than using
+      photos of real people: a disguise made of real people's faces isn't fair on them. What works best:
+      looking at the camera, the whole face visible, even light, a neutral face or a slight smile, and every
+      age, skin tone and gender. The mix is the point.</p>
+  </section>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <div class="grid">
+      <div class="card"><span class="n">1</span><h3>The face pool</h3><p>Every face in <code>faces/</code> is read once: MediaPipe Face Mesh finds 468 points on it, and it's unwrapped onto one shared layout, so a piece of any face lines up with the same piece of any other.</p></div>
+      <div class="card"><span class="n">2</span><h3>The mosaic</h3><p>The shared face is cut into a patchwork around the eyes, brows, nose, mouth, cheeks, chin, jaw and forehead. Each piece shows a different face and swaps to a new one on its own timer, blending as it goes.</p></div>
+      <div class="card"><span class="n">3</span><h3>Onto you</h3><p>Every frame, Face Mesh finds your face and the patchwork is warped onto it triangle by triangle, so the borrowed mouth moves with yours. Its colour leans towards your skin, its edge melts into your head.</p></div>
+      <div class="card"><span class="n">4</span><h3>Out</h3><p>The finished frame goes to OBS's virtual camera, about 30 times a second at 720p, on the CPU: only the face's box is worked on.</p></div>
+    </div>
+  </section>
+</main>
+
+<div id="lightbox" class="lightbox" hidden><img alt=""></div>
+
+<footer id="site-footer">&copy; Cursed Entertainment 2026</footer>
+<script src="site/site.js"></script>
+<script src="https://cursedprograms.github.io/RIFT/site/footer.js"></script>
+</body>
+</html>
