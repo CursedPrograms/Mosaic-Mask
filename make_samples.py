@@ -6,7 +6,8 @@
 
     venv\\Scripts\\python make_samples.py
 
-Each picture's "camera" is one of the faces in faces/ (a still face: the mosaic moves, the head doesn't).
+The GIF and the clip use samples/demo.jfif (a hooded figure, not one of the faces) as the camera; the sheet
+uses faces from faces/. A still picture: the mosaic moves, the head doesn't.
 The GIF needs ffmpeg on PATH.
 """
 import os
@@ -24,7 +25,7 @@ from mosaic.suit import Suit
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "samples")
-GIF_FACE = "man_brown_hair_stubble_navy_sweater.jfif"
+DEMO = os.path.join(HERE, "samples", "demo.jfif")   # the GIF's and the clip's camera
 SHEET_FACES = ["man_brown_hair_stubble_navy_sweater.jfif", "woman_young_box_braids_blue_shirt.jfif",
                "man_elderly_messy_grey_hair_grey_beard_green_sweater.jfif",
                "woman_short_teal_hair_round_glasses_grey_jacket.jfif"]
@@ -40,9 +41,10 @@ def square(img, size, top=False):
 
 
 def face(name, size, top=False):
-    img = cv2.imread(os.path.join(HERE, "faces", name))
+    path = name if os.path.isabs(name) else os.path.join(HERE, "faces", name)
+    img = cv2.imread(path)
     if img is None:
-        sys.exit(f"faces/{name} is missing: pick another face at the top of make_samples.py")
+        sys.exit(f"{path} is missing: pick another picture at the top of make_samples.py")
     return square(img, size, top)
 
 
@@ -82,7 +84,7 @@ def main():
     print("samples/mosaic_samples.jpg")
 
     # the clip: one face, 6 s at 25 fps
-    img = cv2.imread(os.path.join(HERE, "faces", GIF_FACE))
+    img = cv2.imread(DEMO)
     img = cv2.resize(img, (960, int(img.shape[0] * 960 / img.shape[1])), interpolation=cv2.INTER_AREA)
     lm = tracker.landmarks(img)
     suit = Suit(pool, **SETTINGS)
@@ -98,7 +100,7 @@ def main():
     if not ffmpeg:
         print("no ffmpeg on PATH: the GIF is skipped")
         return
-    img = face(GIF_FACE, 640, top=True)
+    img = face(DEMO, 640)
     lm = tracker.landmarks(img)
     suit = Suit(pool, seed=3, **SETTINGS)
     orig = cv2.resize(img, (320, 320), interpolation=cv2.INTER_AREA)
