@@ -9,3 +9,5 @@ samples/_gif_src.mp4
 models/
 # voice test recordings (DREAM's voice, changed)
 voice_tests/
+# your recordings stay on your PC
+recordings/

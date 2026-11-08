@@ -17,9 +17,10 @@ Keys in the preview window:
     O          occlusion on / off (hands, hair, a cup in front of the face stay in front of the mosaic)
     V          virtual camera on / off
     R          reload faces/ (after adding images)
+    C          record / stop (the masked picture and your voice, to recordings/)
     Q or Esc   quit
-Sliders: fragments, swap (ms between a fragment's new faces), fade (ms of blending), colour (how much
-the mosaic takes on your skin tone).
+The window (the Changeling look) has the same as switches and sliders: fragments, swap (ms between a
+fragment's new faces), fade (ms of blending), colour (how much the mosaic takes on your skin tone).
 """
 import argparse
 import os
@@ -126,74 +127,23 @@ def main():
         print(f"Saved {args.snapshot} (face found: {lm is not None}, faces in the pool: {len(pool)})")
         return
 
-    voice = VoiceChanger(mic=args.mic, cable=args.cable, monitor=args.monitor, preset=args.voice)
-    print("Voice: " + (f"{voice.preset} (A changes it), to the call through the virtual cable" if voice.start() else voice.why))
-    cv2.namedWindow(WINDOW, cv2.WINDOW_NORMAL)
-    cv2.resizeWindow(WINDOW, 960, 540)
-    cv2.createTrackbar("fragments", WINDOW, 24, 80, lambda v: None)
-    cv2.createTrackbar("swap ms", WINDOW, 350, 2000, lambda v: None)
-    cv2.createTrackbar("fade ms", WINDOW, 120, 600, lambda v: None)
-    cv2.createTrackbar("colour %", WINDOW, 40, 100, lambda v: None)
+    voice = None
+    try:
+        voice = VoiceChanger(mic=args.mic, cable=args.cable, monitor=args.monitor, preset=args.voice)
+        if voice.start():
+            print("Voice: " + (f"{voice.preset} (A changes it), to the call through the virtual cable" if voice.to_call else voice.why))
+        else:
+            voice = None
+    except Exception as e:
+        print(f"Voice: off ({e})")
+        voice = None
 
-    virtual, want_virtual = None, not args.no_virtual
-    mask_on, frags_now = True, 24
-    fps, t_last = 0.0, time.monotonic()
-    while True:
-        frame = read()
-        if frame is None:
-            print("The camera stopped giving pictures.")
-            break
-        if virtual is None and want_virtual:
-            virtual = open_virtual(frame.shape[1], frame.shape[0], args.fps)
-            want_virtual = virtual is not None
-        if suit:
-            f = cv2.getTrackbarPos("fragments", WINDOW)
-            if f != frags_now:
-                suit.set_fragments(f)
-                frags_now = f
-            suit.swap_ms = max(40, cv2.getTrackbarPos("swap ms", WINDOW))
-            suit.fade_ms = cv2.getTrackbarPos("fade ms", WINDOW)
-            suit.color_match = cv2.getTrackbarPos("colour %", WINDOW) / 100
-        lm = tracker.landmarks(frame)
-        out = suit.apply(frame, lm, occluder) if (suit and mask_on and lm is not None) else frame
-        if virtual is not None:
-            virtual.send(out)
-        now = time.monotonic()
-        fps = fps * 0.9 + 0.1 / max(now - t_last, 1e-3)
-        t_last = now
-        view = out.copy()
-        status = [f"{fps:4.1f} fps   faces: {len(pool)}   mosaic: {'on' if mask_on else 'OFF'}   "
-                  f"occlusion: {'on' if occluder.on else 'off'}   voice: {voice.preset if voice.ready else 'no cable'}   virtual camera: {'on' if virtual is not None else 'off'}"]
-        if not len(pool):
-            status.append("No faces yet: put images in faces/ and press R")
-        elif lm is None:
-            status.append("No face in view")
-        caption(view, status)
-        cv2.imshow(WINDOW, view)
-        k = cv2.waitKey(1) & 0xFF
-        if k in (ord("q"), 27) or cv2.getWindowProperty(WINDOW, cv2.WND_PROP_VISIBLE) < 1:
-            break
-        if k == ord("m"):
-            mask_on = not mask_on
-        elif k == ord("a") and voice.ready:
-            print("Voice:", voice.next_preset())
-        elif k == ord("o") and occluder.session is not None:
-            occluder.on = not occluder.on
-        elif k == ord("v"):
-            if virtual is not None:
-                virtual.close()
-                virtual, want_virtual = None, False
-            else:
-                want_virtual = True
-        elif k == ord("r"):
-            pool = load_pool(args.faces)
-            suit = Suit(pool, fragments=frags_now) if len(pool) else None
-    if virtual is not None:
-        virtual.close()
+    from window import Window
+    Window(args, read, still, tracker, occluder, pool, make_suit=lambda p, f: Suit(p, fragments=f),
+           load_pool=load_pool, open_virtual=open_virtual, voice=voice).run()
     if voice is not None:
         voice.stop()
     tracker.close()
-    cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":

@@ -9,3 +9,5 @@ pyvirtualcam
 onnxruntime-gpu==1.20.2
 torch==2.5.1
 sounddevice
+# the window (the Changeling look)
+customtkinter==5.2.2

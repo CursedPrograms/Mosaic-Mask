@@ -31,7 +31,10 @@ never settles. `samples/mosaic_shimmer.mp4` shows six seconds of it.
 3. In your call, pick the camera **OBS Virtual Camera**. [OBS Studio](https://obsproject.com/) must be
    installed for its virtual camera; it doesn't have to be running.
 
-The preview window shows what the call sees, with the frame rate and how many faces are loaded.
+![The window: the masked picture on the left; faces, switches, sliders, voice and Record on the right](samples/window.png)
+
+The window (the Changeling look) shows what the call sees; on the right are the faces, the switches, the
+sliders, the voice and **Record**.
 
 | Key | Does |
 | :--- | :--- |
@@ -39,6 +42,7 @@ The preview window shows what the call sees, with the frame rate and how many fa
 | <kbd>O</kbd> | occlusion on / off: hands, hair, a cup in front of your face stay in front of the mosaic |
 | <kbd>A</kbd> | voice: off, female, male, disguise (see [The voice](#the-voice)) |
 | <kbd>V</kbd> | virtual camera on / off |
+| <kbd>C</kbd> | record / stop: the masked picture and your voice, as one `.mp4` in `recordings/` |
 | <kbd>R</kbd> | reload `faces/` (after adding images) |
 | <kbd>Q</kbd> or <kbd>Esc</kbd> | quit |
 
@@ -123,7 +127,9 @@ is worked out once.
 
 | File | What it is |
 | :--- | :--- |
-| `app.py` | the webcam, the preview window, the sliders and the virtual camera |
+| `app.py` | the webcam, the face pool, the occlusion and the voice; starts the window |
+| `window.py` | the window: the picture, the switches and sliders, the voice, Record, the virtual camera |
+| `recorder.py` | Record: the picture at a steady 30 fps and the voice, joined by ffmpeg |
 | `mosaic/mesh.py` | Face Mesh, the lighter set of points the warp follows, the triangle warp |
 | `mosaic/face_pool.py` | the faces in `faces/`, unwrapped onto the shared layout and cached |
 | `mosaic/suit.py` | the patchwork, each piece's timer and fade, colour, and the warp onto the live face |

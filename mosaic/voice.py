@@ -161,13 +161,19 @@ class VoiceChanger:
         self.tracker = PitchTracker()
         self.why = ""
         if self.out is None and self.monitor is None:
-            self.why = "no virtual cable (install VB-Audio Virtual Cable): nothing to send the voice to"
+            self.why = "no virtual cable (install VB-Audio Virtual Cable): the voice only goes into recordings"
+        self.taps = []                  # callbacks that get every block of the (changed) voice: recordings
         self._in = queue.Queue(maxsize=50)
         self._running = False
 
     @property
     def ready(self):
-        return self.out is not None or self.monitor is not None
+        """Something to listen to: a microphone (the cable, headphones or a recording takes the voice)."""
+        return self.mic is not None and self.mic >= 0
+
+    @property
+    def to_call(self):
+        return self.out is not None
 
     def next_preset(self):
         self.preset = PRESETS[(PRESETS.index(self.preset) + 1) % len(PRESETS)]
@@ -224,3 +230,5 @@ class VoiceChanger:
             out = np.clip(out, -1, 1).astype(np.float32)[:, None]
             for s in self._outs:
                 s.write(out)
+            for tap in list(self.taps):
+                tap(out[:, 0])
