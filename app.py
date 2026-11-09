@@ -101,6 +101,7 @@ def main():
     ap.add_argument("--fps", type=int, default=30)
     ap.add_argument("--no-virtual", action="store_true")
     ap.add_argument("--voice", choices=PRESETS, default="off", help="the voice to start with (A changes it)")
+    ap.add_argument("--echo", action="store_true", help="female / male in Changeling Echo's trained voices (E)")
     ap.add_argument("--mic", help="the microphone (part of its name; default: Windows' default)")
     ap.add_argument("--cable", default="CABLE Input", help="the virtual cable's playback side (default CABLE Input)")
     ap.add_argument("--monitor", help="also play the voice here, to hear yourself (part of a name: use headphones)")
@@ -129,7 +130,7 @@ def main():
 
     voice = None
     try:
-        voice = VoiceChanger(mic=args.mic, cable=args.cable, monitor=args.monitor, preset=args.voice)
+        voice = VoiceChanger(mic=args.mic, cable=args.cable, monitor=args.monitor, preset=args.voice, echo=args.echo)
         if voice.start():
             print("Voice: " + (f"{voice.preset} (A changes it), to the call through the virtual cable" if voice.to_call else voice.why))
         else:

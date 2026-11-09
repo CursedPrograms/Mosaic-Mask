@@ -41,6 +41,7 @@ sliders, the voice and **Record**.
 | <kbd>M</kbd> | mosaic on / off (your own face, for a moment) |
 | <kbd>O</kbd> | occlusion on / off: hands, hair, a cup in front of your face stay in front of the mosaic |
 | <kbd>A</kbd> | voice: off, female, male, disguise (see [The voice](#the-voice)) |
+| <kbd>E</kbd> | Echo on / off: female and male in Changeling Echo's trained voices |
 | <kbd>V</kbd> | virtual camera on / off |
 | <kbd>C</kbd> | record / stop: the masked picture and your voice, as one `.mp4` in `recordings/` |
 | <kbd>R</kbd> | reload `faces/` (after adding images) |
@@ -74,6 +75,14 @@ next, so there are no seams. About a tenth of a second of delay, on the CPU. Fem
 pitch rather than a fixed step: your own pitch is learned as you talk, so a deep voice and a light one
 both land in the right range.
 
+**Echo** (the switch under the voices, <kbd>E</kbd>, or `--echo`): female and male in a trained voice instead,
+[Changeling Echo](https://github.com/CursedPrograms/Changeling-Echo)'s `echo_female` and `echo_male` (RVC).
+That's someone else's voice speaking your words, rather than yours moved. It runs on the graphics card in
+Echo's own environment as a child process, a quarter second at a time, about a third of a second behind you.
+It takes about 9 seconds to load, and the phase vocoder speaks until it's ready. It needs
+[Changeling Studio](https://github.com/CursedPrograms/Changeling-Studio) with Echo's voices trained, or Echo's
+folder in `ECHO_DIR`. Disguise stays a phase vocoder.
+
 ### VB-Audio Virtual Cable, and listening to the test files
 
 - **The cable is a sound driver:** it installs into Windows with admin rights and adds devices to your
@@ -84,9 +93,10 @@ both land in the right range.
 - **The test files:** the pitch is measured and correct by the numbers, but whether it *sounds* like a
   believable voice, or robotic and warbly, only your ears can judge. `voice_tests/` (on your own PC,
   not in the repo) has a recording through each voice to listen to first: a clean male test voice
-  (Windows' David), then female, male and disguise.
+  (Windows' David), then female, male and disguise. The `echo_*` files are Echo: a male and a female
+  reader (`echo_source_*`), each through the other voice.
 
-Options: `run.bat --voice female` (start with a voice), `run.bat --mic "Focusrite"` (pick the microphone
+Options: `run.bat --voice female --echo` (start with a voice, in Echo's), `run.bat --mic "Focusrite"` (pick the microphone
 by part of its name), `run.bat --monitor "Speakers"` (also hear yourself: use headphones, or you'll get
 feedback).
 

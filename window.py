@@ -93,15 +93,21 @@ class Window:
         self._section(side, "Voice  (A)")
         self.voice_pick = ctk.CTkSegmentedButton(side, values=PRESETS, command=self.set_voice)
         self.voice_pick.pack(fill="x", padx=12, pady=4)
+        self.echo_sw = self._switch(side, "Echo: trained voices  (E)", bool(self.voice and self.voice.echo), self.set_echo)
         self.voice_note = ctk.CTkLabel(side, text="", text_color="gray55", wraplength=270, justify="left")
         self.voice_note.pack(anchor="w", padx=12)
+        self.cable_note = ""
         if self.voice is None:
             self.voice_pick.configure(state="disabled")
+            self.echo_sw.configure(state="disabled")
             self.voice_note.configure(text="No microphone found.")
         else:
             self.voice_pick.set(self.voice.preset)
+            if self.voice.echo_dir is None:
+                self.echo_sw.configure(state="disabled", text="Echo: not installed")
             if not self.voice.to_call:
-                self.voice_note.configure(text="No VB-Audio Virtual Cable: the voice goes into recordings only.")
+                self.cable_note = "No VB-Audio Virtual Cable: the voice goes into recordings only."
+            self.root.after(500, self._voice_status)
 
         self._section(side, "Record  (C)")
         self.rec_btn = ctk.CTkButton(side, text="●  Record", height=42, font=ctk.CTkFont(size=15, weight="bold"),
@@ -152,7 +158,7 @@ class Window:
             if switch.cget("state") != "disabled":
                 switch.toggle()
         keys = {"m": lambda: flip(self.mask_sw), "o": lambda: flip(self.occl_sw), "v": lambda: flip(self.virt_sw),
-                "a": self.next_voice, "r": self.reload, "c": self.toggle_record, "q": self.quit}
+                "a": self.next_voice, "e": lambda: flip(self.echo_sw), "r": self.reload, "c": self.toggle_record, "q": self.quit}
         for k, f in keys.items():
             self.root.bind(f"<KeyPress-{k}>", lambda e, f=f: f())
         self.root.bind("<Escape>", lambda e: self.quit())
@@ -168,6 +174,17 @@ class Window:
     def set_voice(self, preset):
         if self.voice is not None:
             self.voice.preset = preset
+
+    def set_echo(self, on):
+        if self.voice is not None:
+            self.voice.echo = on and self.voice.echo_dir is not None
+
+    def _voice_status(self):
+        """Echo's state (loading, failed) or the cable note, under the voices."""
+        if self.voice is None:
+            return
+        self.voice_note.configure(text=self.voice.echo_state() or self.cable_note)
+        self.root.after(500, self._voice_status)
 
     def next_voice(self):
         if self.voice is not None:
