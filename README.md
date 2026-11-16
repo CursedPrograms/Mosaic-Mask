@@ -23,6 +23,17 @@ Each row is one face: as the camera sees it, then as the mosaic half a second, a
 half later. Every piece follows the face's own shape, and every piece changes on its own timer, so the face
 never settles. `samples/mosaic_shimmer.mp4` shows six seconds of it.
 
+## Minimum requirements
+
+| | |
+| --- | --- |
+| **System** | Windows 10 or 11, 64-bit, or Linux |
+| **Processor** | any 64-bit processor (about 30 fps at 720p on the CPU) |
+| **Memory** | 4 GB RAM |
+| **Graphics** | no GPU needed |
+| **Disk** | about 1 GB (Python 3.11 and its packages, set up for you) |
+| **Other** | a webcam; VB-Audio Virtual Cable for the voice on calls |
+
 ## Use it
 
 1. Put face images in `faces/` (see [The faces](#the-faces)).
