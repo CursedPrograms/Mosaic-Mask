@@ -11,3 +11,9 @@ models/
 voice_tests/
 # your recordings stay on your PC
 recordings/
+# the C++ build: its downloads and outputs; the small face models ship, the occluder (70 MB) is fetched
+cpp/build/
+cpp/dist/
+cpp/external/
+!cpp/models/
+cpp/models/xseg_1.onnx
