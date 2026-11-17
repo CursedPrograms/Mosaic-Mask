@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <condition_variable>
 #include <mutex>
 #include <thread>
 #include <opencv2/calib3d.hpp>
@@ -241,33 +242,68 @@ bool Occluder::load(const std::string& modelsDir) {
     on = true;
     return true;
 }
+struct Occluder::Async {
+    std::thread worker;
+    std::mutex m;
+    std::condition_variable cv;
+    cv::Mat crop;                 // the next lined-up face to look at (empty: nothing waiting)
+    cv::Mat mask;                 // the last mask, in the lined-up frame
+    bool quit = false;
+};
+Occluder::~Occluder() {
+    if (async_) {
+        { std::lock_guard<std::mutex> g(async_->m); async_->quit = true; }
+        async_->cv.notify_all();
+        if (async_->worker.joinable()) async_->worker.join();
+        delete async_;
+    }
+}
 cv::Mat Occluder::mask(const cv::Mat& bgr, const std::vector<cv::Point2f>& lm, cv::Rect box) {
     cv::Mat ones(box.height, box.width, CV_32F, cv::Scalar(1.0f));
     if (!session_ || lm.size() != 468) return ones;
     std::vector<cv::Point2f> dst(5); for (int i = 0; i < 5; ++i) dst[i] = templ(i);
     cv::Mat m = cv::estimateAffinePartial2D(fivePoints(lm), dst);
     if (m.empty()) return ones;
-    if (last_.empty() || frames_ % 3 == 0) {   // it looks every few frames; the mask follows the face between
-        cv::Mat crop;
-        cv::warpAffine(bgr, crop, m, cv::Size(XS, XS), cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
-        std::vector<float> in((size_t)XS * XS * 3);
-        for (int y = 0; y < XS; ++y) { const uint8_t* p = crop.ptr<uint8_t>(y); for (int x = 0; x < XS * 3; ++x) in[(size_t)y * XS * 3 + x] = p[x] / 255.0f; }
-        std::vector<std::vector<float>> o; std::string err;
-        if (run((OrtSession*)session_, in, {1, XS, XS, 3}, o, err) && !o.empty() && o[0].size() >= (size_t)XS * XS) {
-            cv::Mat out(XS, XS, CV_32F, o[0].data());
-            cv::Mat c; cv::min(cv::max(out, 0.0), 1.0, c);
-            cv::GaussianBlur(c, c, cv::Size(0, 0), 5);
-            cv::Mat firm; cv::max(c, 0.5, firm); firm = (firm - 0.5) * 2.0;   // firm, softened (as FaceFusion)
-            last_ = firm.clone();
-        }
+    if (!async_) {
+        async_ = new Async;
+        Async* a = async_; void* sess = session_;
+        a->worker = std::thread([a, sess] {
+            while (true) {
+                cv::Mat crop;
+                {
+                    std::unique_lock<std::mutex> lk(a->m);
+                    a->cv.wait(lk, [a] { return a->quit || !a->crop.empty(); });
+                    if (a->quit) return;
+                    crop = a->crop; a->crop.release();
+                }
+                std::vector<float> in((size_t)XS * XS * 3);
+                for (int y = 0; y < XS; ++y) { const uint8_t* p = crop.ptr<uint8_t>(y); for (int x = 0; x < XS * 3; ++x) in[(size_t)y * XS * 3 + x] = p[x] / 255.0f; }
+                std::vector<std::vector<float>> o; std::string err;
+                if (!run((OrtSession*)sess, in, {1, XS, XS, 3}, o, err) || o.empty() || o[0].size() < (size_t)XS * XS) continue;
+                cv::Mat out(XS, XS, CV_32F, o[0].data());
+                cv::Mat c; cv::min(cv::max(out, 0.0), 1.0, c);
+                cv::GaussianBlur(c, c, cv::Size(0, 0), 5);
+                cv::Mat firm; cv::max(c, 0.5, firm); firm = (firm - 0.5) * 2.0;   // firm, softened (as FaceFusion)
+                std::lock_guard<std::mutex> g(a->m);
+                a->mask = firm.clone();
+            }
+        });
     }
-    ++frames_;
-    if (last_.empty()) return ones;
+    cv::Mat crop;
+    cv::warpAffine(bgr, crop, m, cv::Size(XS, XS), cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
+    cv::Mat last;
+    {
+        std::lock_guard<std::mutex> g(async_->m);
+        async_->crop = crop;      // the newest face replaces any still waiting
+        last = async_->mask;
+    }
+    async_->cv.notify_one();
+    if (last.empty()) return ones;
     cv::Mat back; cv::invertAffineTransform(m, back);
     back.at<double>(0, 2) -= box.x; back.at<double>(1, 2) -= box.y;
     cv::Mat res;
     // outside the lined-up crop (the forehead's top, the hair line) counts as face
-    cv::warpAffine(last_, res, back, box.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(1.0f));
+    cv::warpAffine(last, res, back, box.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(1.0f));
     return res;
 }
 

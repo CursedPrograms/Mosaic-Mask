@@ -4,6 +4,7 @@
 // The occluder is FaceFusion's XSeg (xseg_1.onnx): what's in front of the face (a hand, hair, a cup).
 #pragma once
 #include <opencv2/core.hpp>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -25,6 +26,7 @@ private:
 // FaceFusion's occluder: 1 where the face shows, 0 where something's in front, over box (canvas pixels)
 class Occluder {
 public:
+    ~Occluder();
     bool load(const std::string& modelsDir);   // false: no model (occlusion stays off)
     bool on = false;
     bool available() const { return session_ != nullptr; }
@@ -32,8 +34,9 @@ public:
     cv::Mat mask(const cv::Mat& bgr, const std::vector<cv::Point2f>& lm, cv::Rect box);   // CV_32F, box-sized
 private:
     void* session_ = nullptr;
-    cv::Mat last_;
-    int frames_ = 0;
+    // XSeg runs on its own thread, as often as it keeps up: a frame never waits for it, the mask follows the face
+    struct Async;
+    Async* async_ = nullptr;
 };
 
 }
