@@ -338,7 +338,15 @@ int main(int argc, char** argv) {
     Lang::load(exeDir() + "lang", lang);
     const std::string home = homeDir();
     if (facesDir.empty()) facesDir = (fs::u8path(home) / "faces").u8string();
-    { std::error_code ec; fs::create_directories(fs::u8path(facesDir), ec); }
+    {   // the faces folder; on the first start (empty) the sample strangers that come with Mosaic Mask go in it
+        std::error_code ec; fs::create_directories(fs::u8path(facesDir), ec);
+        bool any = false;
+        for (const auto& e : fs::directory_iterator(fs::u8path(facesDir), ec)) if (e.is_regular_file() && e.path().filename().u8string()[0] != '.') { any = true; break; }
+        const fs::path samples = fs::u8path(exeDir()) / "faces";
+        if (!any && fs::exists(samples, ec))
+            for (const auto& e : fs::directory_iterator(samples, ec))
+                if (e.is_regular_file()) fs::copy_file(e.path(), fs::u8path(facesDir) / e.path().filename(), fs::copy_options::skip_existing, ec);
+    }
     recorder = std::make_unique<Recorder>((fs::u8path(home) / "recordings").u8string());
     wantVirtual = !noVirtual && capture.empty();
 

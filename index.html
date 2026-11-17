@@ -9,7 +9,7 @@
 <meta property="og:title" content="Mosaic Mask: a scramble suit for video calls">
 <meta property="og:description" content="Your face as a shifting mosaic of strangers who don't exist. Inspired by A Scanner Darkly.">
 <meta property="og:image" content="samples/mosaic_samples.jpg">
-<link rel="icon" href="site/icon.svg">
+<link rel="icon" href="site/icon.png">
 <link rel="stylesheet" href="site/style.css">
 </head>
 <body>
@@ -30,7 +30,7 @@
     </div>
     <div class="tags">
       <span class="tag">MediaPipe Face Mesh</span><span class="tag">OpenCV</span><span class="tag">OBS Virtual Camera</span><span class="tag">voice changer</span>
-      <span class="tag">30 fps on a CPU</span><span class="tag">Python</span>
+      <span class="tag">30 fps on a CPU</span><span class="tag">C++ (Atelier)</span><span class="tag">Python</span>
     </div>
     <figure class="hero"><img src="samples/mosaic_mask.gif" alt="A face on the left, the same face on the right as a shifting mosaic of strangers" width="640" height="320"></figure>
   </div>
@@ -56,6 +56,7 @@
   <section id="use">
     <h2>Use it</h2>
     <ol class="steps">
+      <li><strong>Mosaic Mask 2 (C++, part of <a href="https://github.com/CursedPrograms/Atelier">Atelier</a>):</strong> download <code>MosaicMask-win64.zip</code> from <a href="https://github.com/CursedPrograms/Mosaic-Mask/releases">Releases</a>, unzip it, run <code>install.bat</code>. It comes with 27 AI-generated faces. Or the Python version:</li>
       <li>Put face images in <code>faces/</code> (the repo comes with 27).</li>
       <li>Start <code>run.bat</code> (or <code>run.ps1</code>, <code>run.sh</code>). The first time it sets itself up: Python 3.11 with MediaPipe, OpenCV and pyvirtualcam.</li>
       <li>In your call, pick the camera <strong>OBS Virtual Camera</strong>. <a href="https://obsproject.com/">OBS Studio</a> must be installed for its virtual camera; it doesn't have to be running.</li>
@@ -115,11 +116,11 @@
     <section class="keys" id="requirements">
       <h2>Minimum requirements</h2>
       <table class="reqs">
-        <tr><th>System</th><td>Windows 10 or 11, 64-bit, or Linux</td></tr>
+        <tr><th>System</th><td>Windows 10 or 11, 64-bit; Linux for the Python version</td></tr>
         <tr><th>Processor</th><td>any 64-bit processor (about 30 fps at 720p on the CPU)</td></tr>
         <tr><th>Memory</th><td>4 GB RAM</td></tr>
         <tr><th>Graphics</th><td>no GPU needed</td></tr>
-        <tr><th>Disk</th><td>about 1 GB (Python 3.11 and its packages, set up for you)</td></tr>
+        <tr><th>Disk</th><td>250 MB (Mosaic Mask 2); about 1 GB for the Python version</td></tr>
         <tr><th>Other</th><td>a webcam; VB-Audio Virtual Cable for the voice on calls</td></tr>
       </table>
     </section>

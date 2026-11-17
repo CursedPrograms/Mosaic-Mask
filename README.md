@@ -15,6 +15,28 @@ Inspired by the **scramble suit** in *A Scanner Darkly* by **Philip K. Dick** (t
 Linklater's 2006 film of it): the undercover agents' disguise, a shroud that shows a constantly shifting
 blur of thousands of different people's faces and bodies, so the wearer is nobody in particular.
 
+## Two versions
+
+- **Mosaic Mask 2 (Atelier, C++)**: one Windows program, nothing to set up. Download `MosaicMask-win64.zip` from
+  [Releases](https://github.com/CursedPrograms/Mosaic-Mask/releases), unzip it and run `install.bat` (or install it
+  from the [Atelier](https://github.com/CursedPrograms/Atelier) launcher). Its source is in [`cpp/`](cpp).
+- **The Python version** (the rest of this page): `run.bat`, Linux too, and Echo's trained voices.
+
+![Mosaic Mask 2: the controls on the left, the masked picture on the right](samples/window-atelier.png)
+
+Mosaic Mask 2 has the same mosaic, occlusion, virtual camera, voice (off, female, male, disguise) and Record,
+in Atelier's look with the controls on the left, a splash, and 12 languages (English, Japanese, Chinese,
+Spanish, Korean, French, German, Russian, Serbian, Afrikaans, Yucatec Maya, Pennsylvania Dutch). The face is found
+and followed with YuNet and MediaPipe's Face Mesh through ONNX Runtime, the occlusion runs beside it so a frame
+never waits for it, the voice is the same phase vocoder on miniaudio, and the picture goes to OBS's virtual
+camera directly. It comes with 27 AI-generated faces, put in `Documents\Mosaic Maskaces` on the first start;
+recordings go to `Documents\Mosaic Maskecordings` (and need ffmpeg on the PATH or beside it to join the
+sound to the picture). Echo's trained voices are still the Python version's.
+
+Build it: `cppuild.bat` (Visual Studio 2022, CMake, OpenCV 4.10; see the top of the file), then
+`cpp\install.bat`. Tests: `mosaic-cli face.jpg out.png` (one masked frame),
+`mosaic-cli --voice in.wav out.wav female` (the voice offline), `MosaicMask --source face.jpg --capture shot.bmp`.
+
 ## What it looks like
 
 ![Four faces, each shown as the camera sees it, then as the mosaic at three moments half a second apart](samples/mosaic_samples.jpg)
@@ -27,11 +49,11 @@ never settles. `samples/mosaic_shimmer.mp4` shows six seconds of it.
 
 | | |
 | --- | --- |
-| **System** | Windows 10 or 11, 64-bit, or Linux |
+| **System** | Windows 10 or 11, 64-bit (Mosaic Mask 2 and the Python version), or Linux (the Python version) |
 | **Processor** | any 64-bit processor (about 30 fps at 720p on the CPU) |
 | **Memory** | 4 GB RAM |
-| **Graphics** | no GPU needed |
-| **Disk** | about 1 GB (Python 3.11 and its packages, set up for you) |
+| **Graphics** | no GPU needed (Mosaic Mask 2's window: OpenGL 3.3) |
+| **Disk** | 250 MB for Mosaic Mask 2; about 1 GB for the Python version (Python 3.11 and its packages, set up for you) |
 | **Other** | a webcam; VB-Audio Virtual Cable for the voice on calls |
 
 ## Use it
